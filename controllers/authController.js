@@ -33,7 +33,7 @@ const signup = async (req, res, next) => {
 
         // Generate verification token and expiration (5 minutes)
         const token = generateRandomString(8);
-        const verificationExp = Date.now() + 300000;
+        const verificationExp = Date.now() + 900000;
 
         // Create user
         const user = await userModel.create({ 
@@ -90,7 +90,11 @@ const verifyEmail = async (req, res, next) => {
                 status: "error",
                 message: "Verification token has expired"
             });
+
+
         }
+
+
 
         // Update user as verified
         await userModel.findByIdAndUpdate(user._id, { 
