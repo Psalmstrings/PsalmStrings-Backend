@@ -127,12 +127,20 @@ const login = async (req, res, next) => {
 
     try {
         // Find user by email (case-insensitive)
-        const user = await userModel.findOne({ email: email.toLowerCase().trim(), role: "admin" });
+        const user = await userModel.findOne({ email: email.toLowerCase().trim() });
         
         if (!user) {
             return res.status(401).json({
                 status: "error",
                 message: "Invalid credentials"
+            });
+        }
+
+        // Strict admin role check
+        if (user.role !== "admin") {
+            return res.status(403).json({
+                status: "error",
+                message: "Access denied. Only admin users can login."
             });
         }
 
@@ -153,20 +161,20 @@ const login = async (req, res, next) => {
             });
         }
 
-        // Generate JWT token
+        // Generate JWT token with admin role
         const accessToken = jwt.sign(
             {
                 id: user._id,
                 email: user.email,
-                role: user.role || "user"
+                role: user.role // Ensured to be "admin"
             }, 
-            process.env.JWT_SECRET, // Make sure this matches your .env variable
+            process.env.JWT_SECRET,
             {
                 expiresIn: process.env.JWT_EXPIRES_IN || "1h"
             }
         );
 
-        // Omit password from user data
+        // Omit sensitive data from response
         const userData = {
             id: user._id,
             name: user.name,
@@ -176,8 +184,9 @@ const login = async (req, res, next) => {
 
         res.status(200).json({
             status: "success",
-            message: "Login successful",
-            accessToken
+            message: "Admin login successful",
+            accessToken,
+            user: userData.id
         });
 
     } catch (error) {
