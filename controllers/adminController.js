@@ -114,86 +114,83 @@ const verifyEmail = async (req, res, next) => {
     }
 };
 
-const login = async (req, res, next) => {
+const login = async (req, res) => {
     const { email, password } = req.body;
 
-    // Validate input
+    // 1. Input validation
     if (!email || !password) {
         return res.status(400).json({
             status: "error",
-            message: "Please provide both email and password"
+            message: "Both email and password are required"
         });
     }
 
     try {
-        // Find user by email (case-insensitive)
-        const user = await userModel.findOne({ email: email.toLowerCase().trim() });
-        
+        // 2. Find user (case-insensitive email)
+        const user = await userModel.findOne({ 
+            email: email.toLowerCase().trim() 
+        }).select('+password +role +isVerified');
+
+        // 3. User existence check
         if (!user) {
             return res.status(401).json({
                 status: "error",
-                message: "Invalid credentials"
+                message: "No user found with this email"
             });
         }
 
-        // Strict admin role check
+        // 4. Strict admin role verification
         if (user.role !== "admin") {
             return res.status(403).json({
                 status: "error",
-                message: "Access denied. Only admin users can login."
+                message: "Only Admin Can Sign In",
+                hint: "This endpoint is for admin access only"
             });
         }
 
-        // Check if account is verified
+        // 5. Account verification check
         if (!user.isVerified) {
             return res.status(403).json({
                 status: "error",
-                message: "Account not verified. Please check your email."
+                message: "Account not verified",
+                solution: "Please verify your email first"
             });
         }
 
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
+        // 6. Password verification
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
             return res.status(401).json({
                 status: "error",
-                message: "Invalid credentials"
+                message: "Incorrect password"
             });
         }
 
-        // Generate JWT token with admin role
-        const accessToken = jwt.sign(
+        // 7. JWT token generation
+        const token = jwt.sign(
             {
-                id: user._id,
-                email: user.email,
-                role: user.role // Ensured to be "admin"
-            }, 
+                userId: user._id,
+                role: user.role,
+                email: user.email
+            },
             process.env.JWT_SECRET,
-            {
-                expiresIn: process.env.JWT_EXPIRES_IN || "1h"
-            }
+            { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
         );
 
-        // Omit sensitive data from response
-        const userData = {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-        };
-
-        res.status(200).json({
+        // 8. Successful response
+        return res.status(200).json({
             status: "success",
             message: "Admin login successful",
-            accessToken,
-            user: userData.id
+            token,
+            user: user.id
         });
 
     } catch (error) {
         console.error("Login error:", error);
-        res.status(500).json({
+        return res.status(500).json({
             status: "error",
-            message: "An error occurred during login"
+            message: "Internal server error",
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 };
