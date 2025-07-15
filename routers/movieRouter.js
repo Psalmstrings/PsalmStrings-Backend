@@ -11,6 +11,6 @@ movieRouter.post('/',  uploadMovieImage.single("movieImage"), addMovie);
 movieRouter.get('/', getAllMovies);
 movieRouter.get('/:id', getMovieById);
 movieRouter.delete('/:id', deleteMovie);
-movieRouter.get('/', searchMovies);
+movieRouter.get('/search/by-title', searchMovies);
 
 module.exports = movieRouter;

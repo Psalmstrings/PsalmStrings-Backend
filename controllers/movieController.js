@@ -64,19 +64,40 @@ const deleteMovie = async (req, res) => {
 
 const searchMovies = async (req, res) => {
     const { title } = req.query;
+    
     try {
-        if (!title) {
-            return res.status(400).json({ message: "Title query parameter is required" });
+        if (!title || typeof title !== 'string') {
+            return res.status(400).json({ 
+                status: "error",
+                message: "Valid title query parameter is required" 
+            });
         }
-        const movies = await movieModel.find({ title: new RegExp(title, 'i') });
-        if (movies.length === 0) {
-            return res.status(404).json({ message: "No movies found" });
+
+        // Find movie with exact title match (case-insensitive)
+        const movie = await movieModel.findOne({ 
+            title: { $regex: new RegExp(`^${title.trim()}$`, 'i') } 
+        });
+
+        if (!movie) {
+            return res.status(404).json({ 
+                status: "error",
+                message: "Movie not found" 
+            });
         }
-        res.status(200).json(movies);
+
+        res.status(200).json({
+            status: "success",
+            data: movie
+        });
+
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("Search error:", error);
+        res.status(500).json({ 
+            status: "error",
+            message: "Internal server error"
+        });
     }
-}
+};
   
 // Exporting the functions
 module.exports = {

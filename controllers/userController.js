@@ -32,7 +32,8 @@ const getFavMovies = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.status(200).json({ success: true, favorites: user.favorites });
+    res.status(200).json({ success: true, 
+      favorites: user.favorites });
   } catch (err) {
     console.error('Error getting favorite movies:', err);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -43,6 +44,10 @@ const getFavMovies = async (req, res) => {
 const addToFav = async (req, res) => {
   try {
     const { userId, movieId } = req.params;
+
+    if (!userId || !movieId) {
+      return res.status(400).json({ success: false, message: 'User ID and Movie ID are required' });
+    }
     
     const user = await userModel.findById(userId);
     if (!user) {
